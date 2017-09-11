@@ -20,16 +20,17 @@ lazy val server = (project in file("server")).settings(
 
 lazy val client = (project in file("client")).settings(
   scalaVersion := scalaV,
-  persistLauncher := true,
+  scalaJSUseMainModuleInitializer := true,
   scalacOptions ++= Seq("-Xmax-classfile-name","78"),
-  persistLauncher in Test := false,
+  scalaJSUseMainModuleInitializer in Test := false,
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.1",
     "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
     "com.thoughtworks.binding" %%% "dom" % "11.0.0-M4",
     "com.thoughtworks.binding" %%% "futurebinding" % "11.0.0-M4",
-    "fr.hmil" %%% "roshttp" % "2.0.2"
+    "fr.hmil" %%% "roshttp" % "2.0.2",
+    "io.surfkit" %%% "scalajs-google-maps" % "0.0.3-SNAPSHOT"
   )
 ).enablePlugins(ScalaJSPlugin, ScalaJSWeb).
   dependsOn(sharedJs)
@@ -43,3 +44,5 @@ lazy val sharedJs = shared.js
 
 // loads the server project at sbt startup
 onLoad in Global := (Command.process("project server", _: State)) compose (onLoad in Global).value
+
+resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
