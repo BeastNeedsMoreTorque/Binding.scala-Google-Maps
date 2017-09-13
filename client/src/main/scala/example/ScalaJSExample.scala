@@ -1,6 +1,6 @@
 package example
 
-import com.thoughtworks.binding.Binding.Var
+import com.thoughtworks.binding.Binding.{Constants, Var}
 import com.thoughtworks.binding.{Binding, dom}
 import google.maps._
 import org.scalajs.dom.raw.HTMLElement
@@ -21,17 +21,33 @@ object ScalaJSExample extends js.JSApp {
 
   }
 
+  private val possibleAddrs: Var[Seq[GeocoderResult]] = Var(Seq())
+
   @dom private lazy val render: Binding[HTMLElement] = {
-    val search: Var[String] = Var("")
 
     <div>
-      <input id="searchInput" class="prompt" type="text" placeholder="Address..." oninput={event: Event => search.value = searchInput.value}/>
+      <input id="searchInput" class="prompt" type="text" placeholder="Address..." oninput={event: Event =>
+      val value: String = searchInput.value
+      if (value.length > 2)
+        possibleAddresses(value)}/>
       <button class="ui primary button" onclick={event: Event =>
-        geocodeAddress(search.value)}>
+        selectAddress()}>
         Search Address
       </button>
-      <div>Your input is {search.bind}</div>
+      <div>
+        <ol>
+          {Constants(possibleAddrs.bind.map(addr =>
+          renderPosAddr(addr)): _*).map(_.bind)}
+        </ol>
+      </div>
     </div>
+  }
+
+  @dom private def renderPosAddr(addr: GeocoderResult): Binding[HTMLElement] = {
+    <li>
+      {addr.formatted_address}<button onclick={event: Event =>
+      selectAddress(addr)}>select</button>
+    </li>
   }
 
   private lazy val opts = google.maps.MapOptions(
@@ -48,19 +64,32 @@ object ScalaJSExample extends js.JSApp {
     "" // this function needs a String as return type?!
   }
 
-  private def geocodeAddress(address: String) {
-    val geocoder = new Geocoder()
+  private def selectAddress() {
+    val value = possibleAddrs.value
+    if(value.nonEmpty)
+      selectAddress(value.head)
+    else
+      window.alert("There is no Address for your input")
+  }
+
+  private def selectAddress(address: GeocoderResult) {
+    gmap.setCenter(address.geometry.location)
+    val marker = new google.maps.Marker(
+      google.maps.MarkerOptions(map = gmap
+        , position = address.geometry.location))
+  }
+
+  private def possibleAddresses(address: String) {
+
     val callback = (results: js.Array[GeocoderResult], status: GeocoderStatus) =>
       if (status == GeocoderStatus.OK) {
-        gmap.setCenter(results(0).geometry.location)
-        val marker = new google.maps.Marker(
-          google.maps.MarkerOptions(map = gmap
-            , position = results(0).geometry.location))
+        possibleAddrs.value = results.to[Seq]
+          .take(5)
       } else {
         window.alert("Geocode was not successful for the following reason: " + status)
       }
 
-    geocoder.geocode(GeocoderRequest(address), callback)
+    new Geocoder().geocode(GeocoderRequest(address), callback)
   }
 
 

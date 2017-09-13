@@ -62,7 +62,7 @@ And replace the `main` method from the ScalaJSExample:
 ```
 Now you should see the map on `localhost:9000`
 
-### Add Bindings.scala
+## Add Bindings.scala
 The dependency is already there, so no work there.
 So first we add a textfield and a button:
 ```Scala
@@ -85,7 +85,7 @@ And in the `index.scala.html` add `<div id="map-control"></div>` as first div.
 
 Now check `localhost:9000` if everything works as expected.
 
-### Putting everything together
+## Putting everything together
 We would like to search for an address and see it on the map.
 So first let us <b>prepare the needed Google map</b> code.
 To make the map available, provide it and its options as a variables:
@@ -101,10 +101,10 @@ To make the map available, provide it and its options as a variables:
 ```
 
 Provide a function that:
-  1) takes the address (String) from the input
-  2) gets a GeocoderResult (Position) from the Google map API
-  3) centers the the map to the position
-  4) sets a marker to the position
+1. takes the address (String) from the input
+2. gets a GeocoderResult (Position) from the Google map API
+3. centers the the map to the position
+4. sets a marker to the position
 ```Scala
    private def geocodeAddress(address: String) { // 1
      val geocoder = new Geocoder()
@@ -153,12 +153,103 @@ Now the `main` function looks as simple as:
     google.maps.event.addDomListener(window, "load", initialize)
   }
 ```
+## Dive a bit deeper
+Ok lets add a list that shows possible Addresses for our input, from where we can select one, or just take the first.
+First we need another datatype where we can pass around the possible addresses:
+```Scala
+ private val possibleAddrs: Var[Seq[GeocoderResult]] = Var(Seq())
+ ```
+We need to redo our Address fetching function a bit:
+```Scala
+  private def possibleAddresses(address: String) {
+
+    val callback = (results: js.Array[GeocoderResult], status: GeocoderStatus) =>
+      if (status == GeocoderStatus.OK) {
+        possibleAddrs.value = results.to[Seq]
+          .take(5)
+      } else {
+        window.alert("Geocode was not successful for the following reason: " + status)
+      }
+
+    new Geocoder().geocode(GeocoderRequest(address), callback)
+  }
+  ```
+We provide two helper function that will display the Address on the map
+```Scala
+  private def selectAddress() {
+    val value = possibleAddrs.value
+    if(value.nonEmpty)
+      selectAddress(value.head)
+    else
+      window.alert("There is no Address for your input")
+  }
+
+  private def selectAddress(address: GeocoderResult) {
+    gmap.setCenter(address.geometry.location)
+    val marker = new google.maps.Marker(
+      google.maps.MarkerOptions(map = gmap
+        , position = address.geometry.location))
+  }
+  ```
+We adjust our render function:
+```Scala
+  @dom private lazy val render: Binding[HTMLElement] = {
+    <div>
+      <input id="searchInput" class="prompt" type="text" placeholder="Address..." oninput={event: Event =>
+      val value: String = searchInput.value
+      if (value.length > 2)
+        possibleAddresses(value)}/>
+      <button class="ui primary button" onclick={event: Event =>
+        selectAddress()}>
+        Search Address
+      </button>
+      <div>
+        <ol>
+          {for (addr <- possibleAddrs.bind) yield
+          <li>
+            {addr.formatted_address}<button onclick={event: Event =>
+            selectAddress(addr)}>select</button>
+          </li>}
+        </ol>
+      </div>
+    </div>
+  }
+```
+Now it gets tricky. If you refresh `localhost:9000` you will get a Compile Exception: `'each' instructions must be inside a SDE block`.
+Ok, that suggest to extract the `<li>` part:
+```Scala
+ ...
+    <ol>
+      {for (addr <- possibleAddrs.bind) yield
+      renderPosAddr(addr: GeocoderResult).bind}
+    </ol>
+ ...
+
+  @dom private def renderPosAddr(addr: GeocoderResult): Binding[HTMLElement] = {
+    <li>
+      {addr.formatted_address}<button onclick={event: Event =>
+      selectAddress(addr)}>select</button>
+    </li>
+  }
+ ```
+That was not enough - still the same exception!
+Now we need to do it like this (explained here: [Stackoverflow](https://stackoverflow.com/questions/42498968/when-i-use-binding-scala-i-got-the-error-each-instructions-must-be-inside-a-sd/42498969#42498969) )
+```Scala
+ ...
+    <ol>
+      {Constants(possibleAddrs.bind.map(addr =>
+                renderPosAddr(addr)): _*).map(_.bind)}
+    </ol>
+ ...
+ ```
+Now everything compiles and we can search our Addresses!
+
 ## Conclusion
 It's quite interesting to see a stream based Framework (Binding.scala) next to the callback based API (Google maps).
  - The Binding.scala solution is really elegant.
  - I had, still have some problems that there are compile time exceptions shown by the IDE (Intellij). Some I could get rid of by adding implicit conversions.
  - The usage of scala XML to declare the HTML-DOM is really nice. You literally can copy your HTML code directly, just adding the dynamic parts.
-    - However for parameters that expect other types than String, you need again implicit conversions.
+    - Only drawback: for parameters that expect other types than String, you need again implicit conversions.
 
 ## Improvements
 Please let me know if there are things:
