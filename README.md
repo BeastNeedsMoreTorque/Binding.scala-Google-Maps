@@ -1,49 +1,169 @@
 # Play Framework with Scala.js, Binding.scala
+# Work in Progress!
+See the general setup on the original: [Full-Stack-Scala-Starter](https://github.com/Algomancer/Full-Stack-Scala-Starter)
+This project is inspired [Binding.scala with Semantic-UI](http://sadhen.com/blog/2017/01/02/binding-with-semantic.html) to get a step by step tutorial.
 
-[![Join the chat at https://gitter.im/Full-Stack-Scala-Starter/Lobby](https://badges.gitter.im/Full-Stack-Scala-Starter/Lobby.svg)](https://gitter.im/Full-Stack-Scala-Starter/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+On top of the Full-Stack-Scala-Starter project you will get an integration with [Google Maps](https://developers.google.com/maps) and its [Scala JS implementation](https://github.com/coreyauger/scalajs-google-maps).
 
-This is a simple example application showing how you can integrate a Play project with a Scala.js, Binding.scala project. 
+## Dependencies
+[>> commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/7d17f430ef24eca972befa9ea78d3d72655c018b)
 
-Frontend communicates with backend via JSON. Project aims to be a simple modern starting point.
+I upgraded to new versions:
+- Scala: 2.12
+- Play: 2.6
+- Bindings: 11.0.0-M4
 
-The application contains three directories:
-* `server` Play application (server side)
-* `client` Scala.js, Binding.scala application (client side)
-* `shared` Scala code that you want to share between the server and the client
+Verify the setup with `sbt run`: On `http://localhost:9000` you should get a working page.
 
-## Run the application
-```shell
-$ sbt
-> run
-$ open http://localhost:9000
+## adding Google Maps
+Next we add the ScalaJS facade for the Google Map API. We use this [Scala JS implementation](https://github.com/coreyauger/scalajs-google-maps).
+Here the important steps from that project:
+### Include google maps on your page
+```html
+ <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=API_KEY"></script>
+```
+This goes to the head section of `server/app/view/main.scala.html`.
+### Build.sbt
+Add the following dependency to your porject.
+
+`resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"`
+
+`"io.surfkit" %%% "scalajs-google-maps" % "0.0.3-SNAPSHOT",`
+
+I had troubles with the resolvers. It only worked when I added the resolver to `USER_HOME/.sbt/repositories`.
+
+### Add the map to the page
+Add a div to `main.scala.html`: `<div id="map-canvas"></div>`
+
+Add the style to `public/stylesheets/main.css` (otherwise you don't see the map):
+```css
+#map-canvas {
+       width: 100%;
+       height: 800px;
+   }
+   ```
+
+And replace the `main` method from the ScalaJSExample:
+```Scala
+  def main(): Unit = {
+    val initialize = js.Function {
+      val opts = google.maps.MapOptions(
+        center = new LatLng(51.201203, -1.724370),
+        zoom = 8,
+        panControl = false,
+        streetViewControl = false,
+        mapTypeControl = false)
+      new google.maps.Map(document.getElementById("map-canvas"), opts)
+      "" // this function needs a String as return type?!
+    }
+
+    google.maps.event.addDomListener(window, "load", initialize)
+  }
+```
+Now you should see the map on `localhost:9000`
+
+### Add Bindings.scala
+The dependency is already there, so no work there.
+So first we add a textfield and a button:
+```Scala
+  @dom def render(): Binding[HTMLElement] = {
+    <div>
+      <input class="prompt" type="text" placeholder="Address..." />
+      <button class="ui primary button">
+        Search Address
+      </button>
+    </div>
+  }
+  ```
+
+In Intellij you will get a compile exception even though you imported all needed dependencies. This is because the macro will transform the XML elements to `Binding[HTMLElement]`.
+You can fix that by adding this line: `implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = ???`.
+
+next we need to add this to the page. Add the following line to the `main` method:
+`dom.render(document.getElementById("map-control"), render)`
+And in the `index.scala.html` add `<div id="map-control"></div>` as first div.
+
+Now check `localhost:9000` if everything works as expected.
+
+### Putting everything together
+We would like to search for an address and see it on the map.
+So first let us <b>prepare the needed Google map</b> code.
+To make the map available, provide it and its options as a variables:
+```Scala
+  private lazy val opts = google.maps.MapOptions(
+    center = new LatLng(51.201203, -1.724370),
+    zoom = 8,
+    panControl = false,
+    streetViewControl = false,
+    mapTypeControl = false)
+
+  private lazy val gmap = new google.maps.Map(document.getElementById("map-canvas"), opts)
 ```
 
-## Features
+Provide a function that:
+  1) takes the address (String) from the input
+  2) gets a GeocoderResult (Position) from the Google map API
+  3) centers the the map to the position
+  4) sets a marker to the position
+```Scala
+   private def geocodeAddress(address: String) { // 1
+     val geocoder = new Geocoder()
+     val callback = (results: js.Array[GeocoderResult], status: GeocoderStatus) =>
+       if (status == GeocoderStatus.OK) {
+         gmap.setCenter(results(0).geometry.location) // 3
+         val marker = new google.maps.Marker(
+           google.maps.MarkerOptions(map = gmap
+             , position = results(0).geometry.location)) // 4
+       } else {
+         window.alert("Geocode was not successful for the following reason: " + status)
+       }
 
-The application uses the [sbt-web-scalajs](https://github.com/vmunier/sbt-web-scalajs) sbt plugin and the [scalajs-scripts](https://github.com/vmunier/scalajs-scripts) library.
+     geocoder.geocode(GeocoderRequest(address), callback) // 2
+   }
+ ```
+The initialize function is now as simple as:
+```Scala
+  private lazy val initialize = js.Function {
+    gmap // the map must be initialized in this function
+    "" // this function needs a String as return type?!
+  }
+```
+<b>Extend the Bindings.scala code</b>
+ - `oninput` sets the value of the 'search-Var' on each input character (`searchInput` is a compile exception on Intellij)
+ - `onclick` calls the `geocodeAddress` function with the current 'search-Var' value
+ - for demonstration only I added the 'search-Var' bind example that automatically displayes the search value
+```Scala
+  @dom private lazy val render: Binding[HTMLElement] = {
+    val search: Var[String] = Var("")
 
-- Run your application like a regular Play app
-  - `compile` triggers the Scala.js fastOptJS command
-  - `run` triggers the Scala.js fastOptJS command on page refresh
-  - `~compile`, `~run`, continuous compilation is also available
-- Compilation errors from the Scala.js projects are also displayed in the browser
-- Production archives (e.g. using `stage`, `dist`) contain the optimised javascript
-- Source maps
-  - Open your browser dev tool to set breakpoints or to see the guilty line of code when an exception is thrown
-  - Source Maps is _disabled in production_ by default to prevent your users from seeing the source files. But it can easily be enabled in production too by setting `emitSourceMaps in fullOptJS := true` in the Scala.js projects.
+    <div>
+      <input id="searchInput" class="prompt" type="text" placeholder="Address..." oninput={event: Event => search.value = searchInput.value}/>
+      <button class="ui primary button" onclick={event: Event =>
+        geocodeAddress(search.value)}>
+        Search Address
+      </button>
+      <div>Your input is {search.bind}</div>
+    </div>
+  }
+```
+Now the `main` function looks as simple as:
+```Scala
+  def main(): Unit = {
+    dom.render(document.getElementById("map-control"), render)
+    google.maps.event.addDomListener(window, "load", initialize)
+  }
+```
+## Conclusion
+It's quite interesting to see a stream based Framework (Binding.scala) next to the callback based API (Google maps).
+ - The Binding.scala solution is really elegant.
+ - I had, still have some problems that there are compile time exceptions shown by the IDE (Intellij). Some I could get rid of by adding implicit conversions.
+ - The usage of scala XML to declare the HTML-DOM is really nice. You literally can copy your HTML code directly, just adding the dynamic parts.
+    - However for parameters that expect other types than String, you need again implicit conversions.
 
+## Improvements
+Please let me know if there are things:
+ - that could be done better
+ - there are errors
+ - you like to extend
 
-## IDE integration
-
-### Eclipse
-
-1. `$ sbt "eclipse with-source=true"`
-2. Inside Eclipse, `File/Import/General/Existing project...`, choose the root folder. Uncheck the second and the last checkboxes to only import client, server and one shared, click `Finish`. ![Alt text](screenshots/eclipse-play-with-scalajs-example.png?raw=true "eclipse play-with-scalajs-example screenshot")
-
-### IntelliJ
-
-In IntelliJ, open Project wizard, select `Import Project`, choose the root folder and click `OK`.
-Select `Import project from external model` option, choose `SBT project` and click `Next`. Select additional import options and click `Finish`.
-Make sure you use the IntelliJ Scala Plugin v1.3.3 or higher. There are known issues with prior versions of the plugin.
-
-Many thanks to [vmunier](https://github.com/vmunier/) for the initial starting point.
+Just create an issue on that repo.
