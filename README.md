@@ -1,12 +1,13 @@
 # Play Framework with Scala.js, Binding.scala
-# Work in Progress!
+
 See the general setup on the original: [Full-Stack-Scala-Starter](https://github.com/Algomancer/Full-Stack-Scala-Starter)
 This project is inspired [Binding.scala with Semantic-UI](http://sadhen.com/blog/2017/01/02/binding-with-semantic.html) to get a step by step tutorial.
 
 On top of the Full-Stack-Scala-Starter project you will get an integration with [Google Maps](https://developers.google.com/maps) and its [Scala JS implementation](https://github.com/coreyauger/scalajs-google-maps).
-
+Here a screenshot of how the result will look like:
+![result screenshot](https://user-images.githubusercontent.com/3437927/30396523-362dd11a-98ca-11e7-915f-a94dd32e8a4b.gif)
 ## Dependencies
-[>> commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/7d17f430ef24eca972befa9ea78d3d72655c018b)
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/298ddbcc23d204b6753dd69fb74b5ace19d17f7c)
 
 I upgraded to new versions:
 - Scala: 2.12
@@ -16,6 +17,8 @@ I upgraded to new versions:
 Verify the setup with `sbt run`: On `http://localhost:9000` you should get a working page.
 
 ## adding Google Maps
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/4508a6ebc1a86e4ddc95bd6361840db931703471)
+
 Next we add the ScalaJS facade for the Google Map API. We use this [Scala JS implementation](https://github.com/coreyauger/scalajs-google-maps).
 Here the important steps from that project:
 ### Include google maps on your page
@@ -63,6 +66,8 @@ And replace the `main` method from the ScalaJSExample:
 Now you should see the map on `localhost:9000`
 
 ## Add Bindings.scala
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/115dbff7f149b0eb9f4f262daa5a4ca884901fd6)
+
 The dependency is already there, so no work there.
 So first we add a textfield and a button:
 ```Scala
@@ -86,8 +91,10 @@ And in the `index.scala.html` add `<div id="map-control"></div>` as first div.
 Now check `localhost:9000` if everything works as expected.
 
 ## Putting everything together
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/1134210d1a0941cd4ac4459843449cb022b1906f)
+
 We would like to search for an address and see it on the map.
-So first let us <b>prepare the needed Google map</b> code.
+So first let us **prepare the needed Google map** code.
 To make the map available, provide it and its options as a variables:
 ```Scala
   private lazy val opts = google.maps.MapOptions(
@@ -128,7 +135,7 @@ The initialize function is now as simple as:
     "" // this function needs a String as return type?!
   }
 ```
-<b>Extend the Bindings.scala code</b>
+**Extend the Bindings.scala code**
  - `oninput` sets the value of the 'search-Var' on each input character (`searchInput` is a compile exception on Intellij)
  - `onclick` calls the `geocodeAddress` function with the current 'search-Var' value
  - for demonstration only I added the 'search-Var' bind example that automatically displayes the search value
@@ -154,6 +161,8 @@ Now the `main` function looks as simple as:
   }
 ```
 ## Dive a bit deeper
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/34b9e095d1e9d9632f011e7a95889b9e05e50225)
+
 Ok lets add a list that shows possible Addresses for our input, from where we can select one, or just take the first.
 First we need another datatype where we can pass around the possible addresses:
 ```Scala
@@ -165,8 +174,7 @@ We need to redo our Address fetching function a bit:
 
     val callback = (results: js.Array[GeocoderResult], status: GeocoderStatus) =>
       if (status == GeocoderStatus.OK) {
-        possibleAddrs.value = results.to[Seq]
-          .take(5)
+        possibleAddrs.value = results.to[Seq].take(5)
       } else {
         window.alert("Geocode was not successful for the following reason: " + status)
       }
