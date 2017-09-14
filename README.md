@@ -1,7 +1,7 @@
-# Play Framework with Scala.js, Binding.scala, Google Maps API
+# Play with Scala.js, Binding.scala & Google Maps API
 
 See the general setup on the original: [Full-Stack-Scala-Starter](https://github.com/Algomancer/Full-Stack-Scala-Starter)
-This project is inspired [Binding.scala with Semantic-UI](http://sadhen.com/blog/2017/01/02/binding-with-semantic.html) to get a step by step tutorial.
+This project is inspired by [Binding.scala with Semantic-UI](http://sadhen.com/blog/2017/01/02/binding-with-semantic.html) to get a step by step tutorial.
 
 On top of the Full-Stack-Scala-Starter project with [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala) you will get an integration with [Google Maps](https://developers.google.com/maps) and its [Scala JS implementation](https://github.com/coreyauger/scalajs-google-maps).
 Here a screenshot of how the result will look like:
@@ -22,7 +22,7 @@ I upgraded to new versions:
 Verify the setup with `sbt run`: On `http://localhost:9000` you should get a working page.
 
 ## adding Google Maps
-[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/4508a6ebc1a86e4ddc95bd6361840db931703471) [Git Branch](https://github.com/pme123/Binding.scala-Google-Maps/tree/add-google-map)
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/4508a6ebc1a86e4ddc95bd6361840db931703471) - [Git Branch](https://github.com/pme123/Binding.scala-Google-Maps/tree/add-google-map)
 
 Next we add the ScalaJS facade for the Google Map API. We use this [Scala JS implementation](https://github.com/coreyauger/scalajs-google-maps).
 Here the important steps from that project:
@@ -30,7 +30,7 @@ Here the important steps from that project:
 ```html
  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=API_KEY"></script>
 ```
-This goes to the head section of `server/app/view/main.scala.html`.
+This goes to the head section of `server/app/view/main.scala.html`. **Make sure you add there your key!**
 ### Build.sbt
 Add the following dependency to your porject.
 
@@ -87,7 +87,8 @@ So first we add a textfield and a button:
   ```
 
 In Intellij you will get a compile exception even though you imported all needed dependencies. This is because the macro will transform the XML elements to `Binding[HTMLElement]`.
-You can fix that by adding this line: `implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = ???`.
+You can fix that by adding this line:
+`implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = ???`.
 
 next we need to add this to the page. Add the following line to the `main` method:
 `dom.render(document.getElementById("map-control"), render)`
@@ -96,7 +97,7 @@ And in the `index.scala.html` add `<div id="map-control"></div>` as first div.
 Now check `localhost:9000` if everything works as expected.
 
 ## Putting everything together
-[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/1134210d1a0941cd4ac4459843449cb022b1906f) [Git Branch](https://github.com/pme123/Binding.scala-Google-Maps/tree/combine-map-binding)
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/1134210d1a0941cd4ac4459843449cb022b1906f) - [Git Branch](https://github.com/pme123/Binding.scala-Google-Maps/tree/combine-map-binding)
 
 We would like to search for an address and see it on the map.
 So first let us **prepare the needed Google map** code.
@@ -166,7 +167,7 @@ Now the `main` function looks as simple as:
   }
 ```
 ## Dive a bit deeper
-[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/34b9e095d1e9d9632f011e7a95889b9e05e50225) [Git Branch](https://github.com/pme123/Binding.scala-Google-Maps/tree/show-possible-addresses)
+[Git Commit](https://github.com/pme123/Binding.scala-Google-Maps/commit/34b9e095d1e9d9632f011e7a95889b9e05e50225) - [Git Branch](https://github.com/pme123/Binding.scala-Google-Maps/tree/show-possible-addresses)
 
 Ok lets add a list that shows possible Addresses for our input, from where we can select one, or just take the first.
 First we need another datatype where we can pass around the possible addresses:
