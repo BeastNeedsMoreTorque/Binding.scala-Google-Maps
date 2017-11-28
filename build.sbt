@@ -24,6 +24,7 @@ lazy val client = (project in file("client")).settings(
   scalacOptions ++= Seq("-Xmax-classfile-name","78"),
   scalaJSUseMainModuleInitializer in Test := false,
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
+  resolvers += Resolver.sonatypeRepo("snapshots"),
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.1",
     "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
@@ -44,5 +45,3 @@ lazy val sharedJs = shared.js
 
 // loads the server project at sbt startup
 onLoad in Global := (Command.process("project server", _: State)) compose (onLoad in Global).value
-
-resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"

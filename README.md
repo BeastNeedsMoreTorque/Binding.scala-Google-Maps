@@ -263,7 +263,6 @@ It's quite interesting to see a stream based Framework (Binding.scala) next to t
  - The Binding.scala solution is really elegant.
  - I had, still have some problems that there are compile time exceptions shown by the IDE (Intellij). Some I could get rid of by adding implicit conversions.
  - The usage of scala XML to declare the HTML-DOM is really nice. You literally can copy your HTML code directly, just adding the dynamic parts.
-    - Only drawback: for parameters that expect other types than String, you need again implicit conversions.
 
 ## Improvements
 Please let me know if there are things:
